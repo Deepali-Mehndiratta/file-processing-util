@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:file="http://www.springframework.org/schema/integration/file"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/integration
+			http://www.springframework.org/schema/integration/spring-integration.xsd
+			http://www.springframework.org/schema/integration/file
+			http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+			http://www.springframework.org/schema/context 
+			http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<context:property-placeholder location="classpath:file.properties" />
+
+	<file:inbound-channel-adapter id="inputChannel" filter="onlyTextFiles"
+		directory="file:${file.dir}\\IN" 
+		auto-startup="true">
+		<int:poller id="poller" fixed-delay="${polling.interval}" />
+	</file:inbound-channel-adapter>
+
+	<int:filter input-channel="inputChannel" ref="validateFileContentFilter"
+		method="handleFile" output-channel="outputChannel" discard-channel="errorChannel" />
+
+	<bean id="validateFileContentFilter"
+		class="com.sita.fileapp.integration.file.InputFileHandler">
+		<property name="outputDir" value="${file.dir}\\OUT\\" />
+	</bean>
+
+
+	<file:outbound-channel-adapter id="errorChannel"
+		directory="file:${file.dir}\\ERROR" delete-source-files="true" />
+
+	<file:outbound-channel-adapter id="outputChannel"
+		directory="file:${file.dir}\\PROCESSED" delete-source-files="true" />
+
+
+	<bean id="onlyTextFiles"
+		class="org.springframework.integration.file.config.FileListFilterFactoryBean"
+		p:filenamePattern="*.txt" />
+		
+</beans>
